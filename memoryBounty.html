@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Memory Bounty - Choose Your Challenge</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0f1021;
+        --glow: rgba(155, 231, 255, 0.4);
+      }
+
+      body {
+        background: var(--bg);
+        min-height: 100vh;
+        padding: 20px 0 20px 0;
+        font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        overflow: hidden;
+      }
+
+      .container {
+        max-width: 900px;
+        margin-top: 0;
+      }
+
+      .panel {
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        overflow: hidden;
+      }
+
+      .h2 {
+        color: #ccceef;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 15px;
+      }
+
+      .timer {
+        font-size: 48px;
+        font-weight: 700;
+        color: #9be7ff;
+        text-shadow: 0 0 20px var(--glow), 0 0 40px var(--glow);
+        margin: 15px 0;
+      }
+
+      .image-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 58vh;
+        max-height: 600px;
+        margin: 15px 0;
+        overflow: hidden;
+      }
+
+      .memory-image {
+        max-width: 100%;
+        max-height: 100%;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 12px;
+      }
+
+      #memoryPhase.fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        background: var(--bg);
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        margin: 0;
+      }
+
+      #memoryPhase.fullscreen .phase-label,
+      #memoryPhase.fullscreen .timer {
+        display: none;
+      }
+
+      #memoryPhase.fullscreen .image-container {
+        width: 100vw;
+        height: 100vh;
+        max-height: none;
+        margin: 0;
+      }
+
+      #memoryPhase.fullscreen .memory-image {
+        width: 100%;
+        height: 100vh;
+        object-fit: contain;
+        border-radius: 0;
+      }
+
+      /* Center panels vertically */
+      .center-panel {
+        min-height: 95vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .Btns {
+        background: linear-gradient(
+          to right,
+          rgba(221, 0, 171, 1) 0%,
+          rgba(125, 43, 193, 1) 50%,
+          rgba(65, 0, 146, 1) 100%
+        );
+        border: none;
+        border-radius: 12px;
+        color: #ccceef;
+        padding: 12px 32px;
+        font-weight: 500;
+        font-size: 18px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: pointer;
+      }
+
+      .Btns:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(125, 43, 193, 0.4);
+      }
+
+      .Btns:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .instruction {
+        font-size: 18px;
+        color: #9be7ff;
+        margin: 12px 0;
+        font-weight: 500;
+      }
+
+      .phase-label {
+        font-size: 18px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+      }
+
+      .times-up {
+        font-size: 48px;
+        font-weight: 700;
+        color: #ef4444;
+        text-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.05);
+        }
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .start-card {
+        max-width: 550px;
+        margin: 2rem auto;
+        padding: 2.5rem;
+        border: 2px solid rgba(155, 231, 255, 0.2);
+        background: rgba(15, 16, 33, 0.6);
+        border-radius: 18px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+        text-align: center;
+        margin-top: 4rem !important;
+      }
+
+      .start-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #9be7ff;
+        text-shadow: 0 0 12px var(--glow);
+        margin-bottom: 2rem;
+      }
+
+      .rules-section {
+        margin: 2rem 0;
+        text-align: left;
+      }
+
+      .rules-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .rules-list li {
+        padding: 0.8rem 1.2rem;
+        margin-bottom: 0.8rem;
+        background: rgba(155, 231, 255, 0.1);
+        border-left: 3px solid #9be7ff;
+        border-radius: 8px;
+        color: #e6edf3;
+        font-size: 1rem;
+      }
+
+      .start-game-btn {
+        background: linear-gradient(
+          to right,
+          rgba(221, 0, 171, 1) 0%,
+          rgba(125, 43, 193, 1) 50%,
+          rgba(65, 0, 146, 1) 100%
+        );
+        border: none;
+        border-radius: 25px;
+        color: white;
+        padding: 12px 40px;
+        font-weight: 700;
+        font-size: 16px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: pointer;
+        margin-top: 2rem;
+      }
+
+      .start-game-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(125, 43, 193, 0.6);
+      }
+
+      .main-heading {
+        margin-top: 1.5rem;
+      }
+
+      .brainteaser-title {
+        font-size: 3rem;
+        font-weight: 800;
+        color: white;
+        text-shadow: 0 0 20px var(--glow, rgba(155, 231, 255, 0.4));
+        margin-bottom: 0px;
+        line-height: 0.7em;
+      }
+
+      .row.g-3 {
+        --bs-gutter-x: 0rem;
+        --bs-gutter-y: 1rem;
+      }
+
+      .game-card {
+        min-height: 400px;
+        max-width: 280px;
+        aspect-ratio: 2/3;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 3rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+        border: 2px solid rgba(155, 231, 255, 0.2);
+        background: rgba(15, 16, 33, 0.6);
+        border-radius: 18px;
+        backdrop-filter: blur(10px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+      }
+
+      .game-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 30px var(--glow);
+        border-color: rgba(155, 231, 255, 0.5);
+      }
+
+      .card-body {
+        padding: 1.3rem 0.9rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+
+      .card-icon {
+        font-size: 2.4rem;
+        margin: 0.25rem 0 1rem 0;
+        filter: drop-shadow(0 0 12px var(--glow));
+      }
+
+      .card-icon img {
+        width: 140px;
+        height: 140px;
+        object-fit: contain;
+        border-radius: 50%;
+        box-shadow: 0 0 15px var(--glow);
+        background: var(--bg);
+        display: inline-block;
+      }
+
+      .game-title {
+        font-weight: 1000;
+        color: #9be7ff;
+        font-size: 2rem;
+        margin-bottom: 3rem;
+        margin-top: 2rem;
+        text-shadow: 0 0 12px var(--glow);
+        text-transform: capitalize;
+      }
+
+      .play-btn {
+        background: linear-gradient(
+          to right,
+          rgba(221, 0, 171, 1) 0%,
+          rgba(125, 43, 193, 1) 50%,
+          rgba(65, 0, 146, 1) 100%
+        );
+        border: none;
+        height: 30px;
+        border-radius: 25px;
+        color: white;
+        padding: 7px 20px;
+        font-weight: 700;
+        font-size: 14px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: pointer;
+        margin-top: 3rem;
+        margin-bottom: 2rem;
+        line-height: 1.2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .play-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(125, 43, 193, 0.6);
+      }
+
+      @media (max-width: 992px) {
+        .game-card {
+          max-width: 100%;
+        }
+      }
+      @media (max-width: 768px) {
+        .brainteaser-title {
+          font-size: 2rem;
+        }
+        .game-title {
+          font-size: 0.95rem;
+        }
+        .card-icon {
+          font-size: 1.5rem;
+        }
+        .card-icon img {
+          width: 26px;
+          height: 26px;
+        }
+        .game-card {
+          min-height: 180px;
+          aspect-ratio: unset;
+          max-width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="cardSelection">
+        <div class="main-heading text-center mb-4">
+          <div class="brainteaser-title">Memory Bounty</div>
+        </div>
+        <div class="row g-3">
+          <div class="col-12 col-sm-8 col-md-6 col-lg-4 mx-auto">
+            <div class="game-card" onclick="selectGame('all')">
+              <div class="card-body text-center">
+                <h2 class="game-title">FOR ALL</h2>
+                <div class="card-icon">
+                  <img src="/assets/images/forAll.png" alt="Brain Memory Game Icon">
+                </div>
+                <button class="play-btn">Play Now</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-8 col-md-6 col-lg-4 mx-auto">
+            <div class="game-card" onclick="selectGame('vserv')">
+              <div class="card-body text-center">
+                <h2 class="game-title">FOR OGs</h2>
+                <div class="card-icon">
+                  <img src="/assets/images/VservMascot.png" alt="Brain Memory Game Icon">
+                </div>
+                <button class="play-btn">Play Now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="gameSection" class="hidden">
+        <h2 class="h2 brainteaser-title text-center mt-2">Memory Bounty</h2>
+
+        <div id="startScreen" class="start-card">
+          <h2 class="start-title">Ready to test your memory?</h2>
+          <div class="rules-section">
+            <ul class="rules-list">
+              <li>You will get 15 seconds to memorize some objects.</li>
+              <li>Once time is up, you will get 20 seconds to name them.</li>
+              <li>Name as many as you can to win maximum rewards.</li>
+            </ul>
+          </div>
+          <button id="startBtn" class="start-game-btn">Start Game</button>
+        </div>
+
+        <div id="memoryPhase" class="panel hidden">
+          <div class="phase-label">Memorization Phase</div>
+          <div class="timer" id="memoryTimer">15</div>
+          <div class="image-container">
+            <img id="memoryImage" class="memory-image" src="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800" alt="Memory objects" />
+          </div>
+        </div>
+
+        <!-- Recall Phase centered -->
+        <div id="recallPanelWrapper" class="center-panel hidden">
+          <div id="recallPhase" class="panel">
+            <div class="phase-label">Recall Phase</div>
+            <div class="timer" id="recallTimer">20</div>
+            <p id="recallInstruction" class="instruction">What did you see? (Manual quiz time!)</p>
+          </div>
+        </div>
+
+        <!-- Result Panel centered -->
+        <div id="timeUpPanelWrapper" class="center-panel hidden">
+          <div id="timeUpScreen" class="panel">
+            <div class="times-up">Time's Up!</div>
+            <p class="instruction mt-4">Ready to try again?</p>
+            <button id="collectRewardBtn" class="Btns mt-3 ms-2 hidden">Collect Reward</button>
+            <button id="restartBtn" class="Btns mt-3">Play Again</button>
+            <button id="backToMenuBtn" class="Btns mt-3 ms-2">Back to Menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let memoryInterval = null;
+      let recallInterval = null;
+      let memoryTime = 15;
+      let recallTime = 20;
+      let currentGameType = 'all';
+
+      const cardSelection = document.getElementById("cardSelection");
+      const gameSection = document.getElementById("gameSection");
+      const startScreen = document.getElementById("startScreen");
+      const memoryPhase = document.getElementById("memoryPhase");
+      const recallPanelWrapper = document.getElementById("recallPanelWrapper");
+      const timeUpPanelWrapper = document.getElementById("timeUpPanelWrapper");
+
+      const memoryImage = document.getElementById("memoryImage");
+      const memoryTimer = document.getElementById("memoryTimer");
+      const recallTimer = document.getElementById("recallTimer");
+      const recallInstruction = document.getElementById("recallInstruction");
+
+      const startBtn = document.getElementById("startBtn");
+      const restartBtn = document.getElementById("restartBtn");
+      const backToMenuBtn = document.getElementById("backToMenuBtn");
+      const collectRewardBtn = document.getElementById("collectRewardBtn");
+
+      function selectGame(type) {
+        currentGameType = type;
+
+        if (type === 'all') {
+          memoryImage.src = "/assets/images/memoryimg.jpeg";
+        } else if (type === 'vserv') {
+          memoryImage.src = "/assets/images/memoryimg.jpeg";
+        }
+
+        // Update rules based on game type
+        updateRules(type);
+
+        cardSelection.classList.add("hidden");
+        gameSection.classList.remove("hidden");
+      }
+
+      function updateRules(type) {
+        const rulesList = document.querySelector('.rules-list');
+        
+        if (type === 'all') {
+          rulesList.innerHTML = `
+            <li>You will get 15 seconds to memorize some objects.</li>
+            <li>Once time is up, you will get 20 seconds to name them.</li>
+            <li>Name as many as you can to win maximum rewards.</li>
+          `;
+        } else if (type === 'vserv') {
+          rulesList.innerHTML = `
+            <li>You will get 15 seconds to memorize objects and their owners.</li>
+            <li>Once time is up, you will get 20 seconds to match them.</li>
+            <li>Match correctly to win maximum rewards.</li>
+          `;
+        }
+      }
+
+      function showScreen(screen) {
+        [startScreen, memoryPhase, recallPanelWrapper, timeUpPanelWrapper].forEach(s => {
+          s.classList.add("hidden");
+        });
+        screen.classList.remove("hidden");
+      }
+
+      function startGame() {
+        memoryTime = 15;
+        recallTime = 20;
+
+        showScreen(memoryPhase);
+        startMemoryPhase();
+      }
+
+      function startMemoryPhase() {
+        memoryPhase.classList.add("fullscreen");
+        memoryTimer.textContent = memoryTime;
+
+        memoryInterval = setInterval(() => {
+          memoryTime--;
+          memoryTimer.textContent = memoryTime;
+
+          if (memoryTime <= 0) {
+            clearInterval(memoryInterval);
+            memoryPhase.classList.remove("fullscreen");
+            startRecallPhase();
+          }
+        }, 1000);
+      }
+
+      function startRecallPhase() {
+        showScreen(recallPanelWrapper);
+        recallTimer.textContent = recallTime;
+
+        if (currentGameType === "all") {
+          recallInstruction.textContent = "Name as many as you can";
+        } else if (currentGameType === "vserv") {
+          recallInstruction.textContent = "What belongs to whom?";
+        } else {
+          recallInstruction.textContent = "What did you see? (Manual quiz time!)";
+        }
+
+        recallInterval = setInterval(() => {
+          recallTime--;
+          recallTimer.textContent = recallTime;
+
+          if (recallTime <= 0) {
+            clearInterval(recallInterval);
+            showTimeUp();
+          }
+        }, 1000);
+      }
+
+      function showTimeUp(win = false) {
+        showScreen(timeUpPanelWrapper);
+        if (win) {
+          document.querySelector('.times-up').textContent = "You Win!";
+          document.querySelector('.instruction.mt-4').textContent = "Congratulations!";
+          restartBtn.classList.add("hidden");
+          collectRewardBtn.classList.remove("hidden");
+        } else {
+          document.querySelector('.times-up').textContent = "Time's Up!";
+          document.querySelector('.instruction.mt-4').textContent = "Ready to try again?";
+          restartBtn.classList.remove("hidden");
+          collectRewardBtn.classList.add("hidden");
+        }
+      }
+
+      function restart() {
+        clearInterval(memoryInterval);
+        clearInterval(recallInterval);
+        memoryTime = 15;
+        recallTime = 20;
+        showScreen(startScreen);
+      }
+
+      function backToMenu() {
+        window.location.href = 'homepage.html';
+      }
+
+      startBtn.addEventListener("click", startGame);
+      restartBtn.addEventListener("click", restart);
+      backToMenuBtn.addEventListener("click", backToMenu);
+      collectRewardBtn.addEventListener("click", backToMenu);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

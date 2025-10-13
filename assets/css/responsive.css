@@ -1,0 +1,230 @@
+/*For Mobile */
+@media screen and (max-width:480px){
+  .navbar-brand {
+    margin-left: 0;
+    margin-right: auto ;
+  }
+  .hero-title {
+    font-size: 1.5rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .hero-images-container {
+    min-height: 200px;
+    margin-top: 1.5rem;
+  }
+  
+  .hero-image-square {
+    max-width: 280px;
+    margin: 0 auto;
+    display: block;
+    
+  }
+  .btn {
+    font-size: 0.875rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+  
+  .brand-text {
+    font-size: 1rem;
+  }
+  
+  .question-text {
+    font-size: 0.95rem;
+  }
+  
+  .description-text {
+    font-size: 0.9rem;
+  }
+  
+  .data-image-container {
+    max-width: 200px;
+    max-height: 200px;
+    margin: 0 auto;
+  }
+
+  .metrics-footer-area {
+    padding: 40px 0;
+  }
+  
+  .footer-brand-logo {
+    max-width: 150px;
+  }
+   .marquee-content {
+    gap: 40px;
+  }
+  
+  .marquee-content .platform-icon {
+    max-width: 50px;
+    max-height: 50px;
+  }
+}
+
+/*****Mobile Horizontal view******/
+@media screen and (min-width:490px) and (max-width:767px){
+  .hero-title {
+    font-size: 1.75rem;
+  }
+  
+  .hero-image-square {
+    max-width: 300px;
+  }
+  
+  .hero-images-container {
+    margin-top: 3rem;
+    margin-bottom: 0;
+  }
+  
+  .hero-overlay .container.py-5 {
+    padding-bottom: 1rem ;
+  }
+  
+  .dashboard-section {
+    padding-top: 1.5rem ;
+  }
+  
+ /* Data-Driven Section Mobile Horizontal */
+  .section-title {
+    font-size: 1.75rem;
+  }
+  
+  .data-image-container {
+    max-width: 220px;
+    max-height: 220px;
+    margin: 0 auto;
+  }
+
+  /* Footer Mobile Horizontal */
+  .metrics-footer-area {
+    padding: 45px 0;
+  }
+  
+  .footer-brand-logo {
+    max-width: 170px;
+  }
+}
+
+/*********Ipad*************/
+@media screen and (min-width:768px) and (max-width:991px){
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .hero-images-container {
+    margin-top: 2rem;
+  }
+  /* Data-Driven Section Ipad */
+  .section-title {
+    font-size: 1.85rem;
+  }
+  
+  .data-image-container {
+    max-width: 240px;
+    max-height: 240px;
+  }
+
+  /* Footer Ipad */
+  .footer-brand-logo {
+    max-width: 180px;
+  }
+}
+
+@media screen and (max-width:991px){
+  .hero-overlay {
+    padding-top: 2rem ;
+  }
+  
+  .col-lg-4 {
+    text-align: center;
+  }
+  
+  .dashboard-section {
+    margin-top: 2rem;
+  }
+    /* Data-Driven Section Below 991px */
+  .data-image-container {
+    margin-bottom: 1.5rem;
+  }
+}
+
+/*********Ipad Pro*************/
+@media screen and (min-width:991px) and (max-width:1024px){
+  .hero-title {
+    font-size: 2.25rem;
+  }
+}
+
+@media screen and (min-width:1025px) and (max-width:1250px){
+  .container {
+    max-width: 1140px;
+  }
+}
+
+/*********Large Screens*************/
+@media screen and (min-width:1920px){
+  .container {
+    max-width: 1600px;
+  }
+  
+  .hero-title {
+    font-size: 3.5rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1.5rem;
+  }
+  
+  .hero-image-square {
+    max-width: 450px;
+  }
+  .section-title {
+    font-size: 2.5rem;
+  }
+  
+  .brand-text {
+    font-size: 1.3rem;
+  }
+  
+  .question-text {
+    font-size: 1.25rem;
+  }
+  
+  .description-text {
+    font-size: 1.2rem;
+  }
+  
+  .data-image-container {
+    max-width: 320px;
+    max-height: 320px;
+  }
+
+  .metrics-footer-area {
+    padding: 80px 0;
+  }
+  
+  .footer-brand-logo {
+    max-width: 250px;
+  }
+  
+  .email-input-field {
+    font-size: 1.1rem;
+  }
+  
+  .demo-request-btn {
+    font-size: 1.1rem;
+  }
+  .marquee-content {
+    gap: 80px;
+  }
+  
+  .marquee-content .platform-icon {
+    max-width: 80px;
+    max-height: 80px;
+  }
+}

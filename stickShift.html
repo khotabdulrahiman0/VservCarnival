@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Stick Shift</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0f1021;
+        --match: #f6d66f;
+        --match-shadow: rgba(255, 214, 102, 0.4);
+        --unlit: #3c4a56;
+        --node: #ef4444;
+        --selected: #9be7ff;
+        --glow: rgba(155, 231, 255, 0.4);
+      }
+      body {
+        background: var(--bg);
+        color: #e6edf3;
+        min-height: 100vh;
+        font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        overflow: hidden;
+      }
+      .game-shell {
+        max-width: 900px;
+        margin: auto;
+      }
+      .board {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        flex-wrap: wrap;
+        padding: 24px 10px 8px;
+      }
+      .glyph {
+        position: relative;
+        width: 132px;
+        height: 200px;
+      }
+      .seg {
+        position: absolute;
+        background: var(--match);
+        box-shadow: 0 0 10px var(--match-shadow), 0 0 18px var(--match-shadow);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: filter 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+        user-select: none;
+      }
+      .seg.h { width: 94px; height: 10px; }
+      .seg.v { width: 10px; height: 84px; }
+      .seg::before, .seg::after {
+        content: "";
+        position: absolute;
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--node);
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+      }
+      .seg.h::before, .seg.h::after { top: 0; }
+      .seg.h::before { left: -6px; }
+      .seg.h::after { right: -6px; }
+      .seg.v::before, .seg.v::after { left: 0; }
+      .seg.v::before { top: -6px; }
+      .seg.v::after { bottom: -6px; }
+      .seg.off {
+        opacity: 0.3;
+        background: rgba(60, 74, 86, 0.3);
+        box-shadow: none;
+        cursor: default;
+        transition: all 0.3s ease;
+      }
+      .seg.off::before, .seg.off::after {
+        background: rgba(239, 68, 68, 0.2);
+        box-shadow: none;
+      }
+      .seg.off.can-drop {
+        opacity: 0.6;
+        background: rgba(60, 74, 86, 0.5);
+        outline: 2px dashed rgba(155, 231, 255, 0.4);
+      }
+      .seg.selected {
+        outline: 2px solid var(--selected);
+        box-shadow: 0 0 12px rgba(155, 231, 255, 0.8);
+        filter: drop-shadow(0 0 6px rgba(155, 231, 255, 0.5));
+      }
+      .seg.dragging {
+        opacity: 0.5;
+        cursor: grabbing !important;
+      }
+      .seg.drag-over {
+        outline: 3px dashed var(--selected);
+        background: rgba(155, 231, 255, 0.35) !important;
+        box-shadow: 0 0 20px rgba(155, 231, 255, 0.6), inset 0 0 20px rgba(155, 231, 255, 0.3) !important;
+        animation: pulse-glow 0.6s ease-in-out infinite alternate;
+      }
+      @keyframes pulse-glow {
+        0% { 
+          box-shadow: 0 0 20px rgba(155, 231, 255, 0.6), inset 0 0 20px rgba(155, 231, 255, 0.3);
+        }
+        100% { 
+          box-shadow: 0 0 30px rgba(155, 231, 255, 0.9), inset 0 0 30px rgba(155, 231, 255, 0.5);
+        }
+      }
+      .seg:not(.off) {
+        cursor: grab;
+      }
+      .seg:not(.off):active {
+        cursor: grabbing;
+      }
+      .a { top: 6px; left: 19px; }
+      .g { top: 95px; left: 19px; }
+      .d { bottom: 6px; left: 19px; }
+      .b { top: 16px; right: 19px; }
+      .c { top: 106px; right: 19px; }
+      .f { top: 16px; left: 19px; }
+      .e { top: 106px; left: 19px; }
+      .op-h-top { top: 62px; left: 19px; }
+      .op-h-mid { top: 95px; left: 19px; }
+      .op-h-bot { top: 128px; left: 19px; }
+      .op-v-mid { top: 58px; left: 61px; }
+      .panel {
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 12px;
+      }
+      .legend { font-size: 0.9rem; opacity: 0.9; }
+      .ref-img {
+        width: 280px; max-width: 45vw;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.1);
+      }
+      .h2 { color: #ccceef; font-size: 28px; font-weight: 700; }
+      .status{
+        background-color: #3c4a56 ;
+        color: #ccceef ;
+      }
+      .Btns {
+        background: linear-gradient(
+          to right,
+          rgba(221, 0, 171, 1) 0%,
+          rgba(125, 43, 193, 1) 50%,
+          rgba(65, 0, 146, 1) 100%
+        );
+        border: none;
+        border-radius: 12px;
+        color: #ccceef;
+        padding: 6px 14px;
+        font-weight: 500;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        min-width: 180px;
+        text-align: center;
+        display: inline-block;
+      }
+      .Btns:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(125, 43, 193, 0.4);
+      }
+      .hidden {
+        display: none !important;
+      }
+      #timerDisplay {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #9be7ff;
+        text-shadow: 0 0 20px var(--selected), 0 0 40px var(--selected);
+        margin-bottom: 10px;
+      }
+      .timer-danger {
+        color: #ef4444 !important;
+        text-shadow: 0 0 20px #ef4444;
+        animation: pulse 1s infinite alternate;
+      }
+      @keyframes pulse {
+        0% { opacity: 1; }
+        100% { opacity: 0.7; }
+      }
+      .disabled-board {
+        pointer-events: none;
+        opacity: 1;
+      }
+      .result-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #9be7ff;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 12px var(--glow);
+      }
+      .result-message {
+        font-size: 1.2rem;
+        margin-bottom: 1.5rem;
+      }
+      .start-card {
+        max-width: 550px;
+        margin: 2rem auto;
+        padding: 2.5rem;
+        border: 2px solid rgba(155, 231, 255, 0.2);
+        background:  var(--bg);
+        border-radius: 18px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+        text-align: center;
+        margin-top: 4rem !important;
+      }
+      .start-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #9be7ff;
+        text-shadow: 0 0 12px var(--glow);
+        margin-bottom: 2rem;
+      }
+      .heading-title{
+         font-size: 3rem;
+        font-weight: 800;
+        color: white;
+        text-shadow: 0 0 20px var(--glow, rgba(155, 231, 255, 0.4));
+        margin-bottom: 0px;
+        line-height: 0.7em;
+      }
+      .rules-section { margin: 2rem 0; text-align: left; }
+      .rules-list { list-style: none; padding: 0; margin: 0; }
+      .rules-list li {
+        padding: 0.8rem 1.2rem;
+        margin-bottom: 0.8rem;
+        background: rgba(155, 231, 255, 0.1);
+        border-left: 3px solid #9be7ff;
+        border-radius: 8px;
+        color: #e6edf3;
+        font-size: 1rem;
+      }
+      .start-game-btn {
+        background: linear-gradient(
+          to right,
+          rgba(221, 0, 171, 1) 0%,
+          rgba(125, 43, 193, 1) 50%,
+          rgba(65, 0, 146, 1) 100%
+        );
+        border: none;
+        border-radius: 25px;
+        color: white;
+        padding: 12px 40px;
+        font-weight: 700;
+        font-size: 16px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        cursor: pointer;
+        margin-top: 2rem;
+      }
+      .start-game-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(125, 43, 193, 0.6);
+      }
+      .center-vertical {
+        min-height: 89vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .instruction-banner {
+        background: rgba(155, 231, 255, 0.1);
+        border: 1px solid rgba(155, 231, 255, 0.2);
+        border-radius: 8px;
+        padding: 0.8rem 1.2rem;
+        text-align: center;
+        margin-bottom: 1rem;
+        color: #9be7ff;
+        font-size: 0.95rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container py-2 game-shell">
+      <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+        <div>
+          <h2 class="h2 heading-title text-center mt-3">Stick Shift</h2>
+        </div>
+      </div>
+      <section id="startPanel" class="start-card">
+        <h2 class="start-title">Ready to test your logic?</h2>
+        <div class="rules-section">
+          <ul class="rules-list">
+            <li>Move ONE matchstick to make the equation right.</li>
+            <li>You have 30 seconds to complete the challenge.</li>
+            <li>Click to select or drag and drop matchsticks.</li>
+          </ul>
+        </div>
+        <button id="startBtn" class="start-game-btn">Start Game</button>
+      </section>
+      <section id="puzzlePanel" class="panel mt-4 p-3 hidden">
+        <div id="timerDisplay" class="text-center"></div>
+        <div class="instruction-banner">
+          💡 Click to select or drag and drop a matchstick to solve the puzzle
+        </div>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div>
+            <button id="cancelBtn" class="btn btn-outline-secondary btn-sm me-2">Cancel Pick</button>
+          </div>
+        </div>
+        <div id="board" class="board mt-3 mb-5"></div>
+      </section>
+      <div id="resultPanelWrapper" class="center-vertical hidden">
+        <section id="resultPanel" class="panel p-4 text-center">
+          <div class="result-title" id="resultTitle"></div>
+          <div class="result-message" id="resultMessage"></div>
+          <button id="collectRewardBtn" class="Btns mt-3 px-4 py-2 hidden">Collect Reward</button>
+          <button id="playAgainBtn" class="Btns mt-3 px-4 py-2">Play Again</button>
+          <button id="backToMenuBtn" class="Btns mt-3 px-4 py-2">Go to Menu</button>
+        </section>
+      </div>
+      <div id="status" class="mt-5 status"></div>
+    </main>
+
+    <script>
+      const DIGIT_TO_SEGS = {
+        0: ["a", "b", "c", "d", "e", "f"],
+        1: ["b", "c"],
+        2: ["a", "b", "g", "e", "d"],
+        3: ["a", "b", "g", "c", "d"],
+        4: ["f", "g", "b", "c"],
+        5: ["a", "f", "g", "c", "d"],
+        6: ["a", "f", "g", "e", "c", "d"],
+        7: ["a", "b", "c"],
+        8: ["a", "b", "c", "d", "e", "f", "g"],
+        9: ["a", "b", "c", "d", "f", "g"],
+      };
+
+      const SEGS_TO_DIGIT = {};
+      for (const [digit, segs] of Object.entries(DIGIT_TO_SEGS)) {
+        SEGS_TO_DIGIT[[...segs].sort().join("")] = Number(digit);
+      }
+
+      const PUZZLES = [
+        {
+          start: [
+            { kind: "digit", value: 6 },
+            { kind: "op", segs: ["op-h-mid", "op-v-mid"] },
+            { kind: "digit", value: 5 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 3 },
+          ],
+          target: [
+            { kind: "digit", value: 8 },
+            { kind: "op", segs: ["op-h-mid"] },
+            { kind: "digit", value: 5 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 3 },
+          ],
+        },
+        {
+          start: [
+            { kind: "digit", value: 9 },
+            { kind: "op", segs: ["op-h-mid"] },
+            { kind: "digit", value: 8 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 2 },
+          ],
+          target: [
+            { kind: "digit", value: 8 },
+            { kind: "op", segs: ["op-h-mid"] },
+            { kind: "digit", value: 6 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 2 },
+          ],
+        },
+        {
+          start: [
+            { kind: "digit", value: 2 },
+            { kind: "op", segs: ["op-h-mid", "op-v-mid"] },
+            { kind: "digit", value: 3 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 4 },
+          ],
+          target: [
+            { kind: "digit", value: 2 },
+            { kind: "op", segs: ["op-h-mid", "op-v-mid"] },
+            { kind: "digit", value: 2 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 4 },
+          ],
+        },
+        {
+          start: [
+            { kind: "digit", value: 7 },
+            { kind: "op", segs: ["op-h-mid", "op-v-mid"] },
+            { kind: "digit", value: 6 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 1 },
+          ],
+          target: [
+            { kind: "digit", value: 1 },
+            { kind: "op", segs: ["op-h-mid", "op-v-mid"] },
+            { kind: "digit", value: 6 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 7 },
+          ],
+        },
+        {
+          start: [
+            { kind: "digit", value: 5 },
+            { kind: "op", segs: ["op-h-mid", "op-v-mid"] },
+            { kind: "digit", value: 8 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 6 },
+          ],
+          target: [
+            { kind: "digit", value: 6 },
+            { kind: "op", segs: ["op-h-mid", "op-v-mid"] },
+            { kind: "digit", value: 0 },
+            { kind: "op", segs: ["op-h-top", "op-h-bot"] },
+            { kind: "digit", value: 6 },
+          ],
+        }
+      ];
+
+      let state = null;
+      let picked = null;
+      let moves = 0;
+      const MAX_MOVES = 1;
+      let currentPuzzleIndex = 0;
+
+      const boardEl = document.getElementById("board");
+      const statusEl = document.getElementById("status");
+      const startPanel = document.getElementById("startPanel");
+      const puzzlePanel = document.getElementById("puzzlePanel");
+      const resultPanelWrapper = document.getElementById("resultPanelWrapper");
+      const resultTitle = document.getElementById("resultTitle");
+      const resultMessage = document.getElementById("resultMessage");
+      const playAgainBtn = document.getElementById("playAgainBtn");
+      const collectRewardBtn = document.getElementById("collectRewardBtn");
+      const timerDisplay = document.getElementById("timerDisplay");
+      const backToMenuBtn = document.getElementById("backToMenuBtn");
+
+      let timer = null;
+      let timeLeft = 30;
+      let timeUp = false;
+
+      function startTimer() {
+        clearInterval(timer);
+        timeLeft = 30;
+        timeUp = false;
+        updateTimerDisplay();
+        timer = setInterval(() => {
+          timeLeft--;
+          updateTimerDisplay();
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            timeLeft = 0;
+            timeUp = true;
+            updateTimerDisplay();
+            disableBoard();
+            showResult(false, "Time's up! Try again.");
+          }
+        }, 1000);
+      }
+
+      function updateTimerDisplay() {
+        timerDisplay.textContent = ` ${timeLeft}s`;
+        if (timeLeft <= 5) {
+          timerDisplay.classList.add("timer-danger");
+        } else {
+          timerDisplay.classList.remove("timer-danger");
+        }
+      }
+
+      function disableBoard() {
+        boardEl.classList.add("disabled-board");
+      }
+      function enableBoard() {
+        boardEl.classList.remove("disabled-board");
+      }
+
+      function cloneStateFromConfig(cfg) {
+        return cfg.map((item) => {
+          if (item.kind === "digit") {
+            return { kind: "digit", segs: new Set(DIGIT_TO_SEGS[item.value]) };
+          } else {
+            return { kind: "op", segs: new Set(item.segs) };
+          }
+        });
+      }
+
+      function init() {
+        const puzzle = PUZZLES[currentPuzzleIndex];
+        state = cloneStateFromConfig(puzzle.start);
+        picked = null;
+        moves = 0;
+        render();
+        enableBoard();
+        updateStatus("Solve this by moving one matchstick.");
+      }
+
+      function render() {
+        boardEl.innerHTML = "";
+
+        state.forEach((g, gIndex) => {
+          const box = document.createElement("div");
+          box.className = "glyph";
+
+          if (g.kind === "digit") {
+            const all = ["a", "b", "c", "d", "e", "f", "g"];
+            for (const key of all) {
+              const segEl = document.createElement("div");
+              const isH = key === "a" || key === "g" || key === "d";
+              segEl.className =
+                "seg " + (isH ? "h " : "v ") + key + (g.segs.has(key) ? "" : " off");
+              segEl.dataset.gIndex = gIndex;
+              segEl.dataset.segKey = key;
+              
+              if (g.segs.has(key)) {
+                segEl.draggable = true;
+                segEl.addEventListener("dragstart", onDragStart);
+                segEl.addEventListener("dragend", onDragEnd);
+              }
+              
+              segEl.addEventListener("click", onClickSeg);
+              segEl.addEventListener("dragover", onDragOver);
+              segEl.addEventListener("dragleave", onDragLeave);
+              segEl.addEventListener("drop", onDrop);
+              
+              if (picked && picked.gIndex === gIndex && picked.segKey === key) {
+                segEl.classList.add("selected");
+              }
+              box.appendChild(segEl);
+            }
+          } else {
+            const all = ["op-h-top", "op-h-mid", "op-h-bot", "op-v-mid"];
+            for (const key of all) {
+              const segEl = document.createElement("div");
+              const isH = key.startsWith("op-h");
+              segEl.className =
+                "seg " + (isH ? "h " : "v ") + key + (g.segs.has(key) ? "" : " off");
+              segEl.dataset.gIndex = gIndex;
+              segEl.dataset.segKey = key;
+              
+              if (g.segs.has(key)) {
+                segEl.draggable = true;
+                segEl.addEventListener("dragstart", onDragStart);
+                segEl.addEventListener("dragend", onDragEnd);
+              }
+              
+              segEl.addEventListener("click", onClickSeg);
+              segEl.addEventListener("dragover", onDragOver);
+              segEl.addEventListener("dragleave", onDragLeave);
+              segEl.addEventListener("drop", onDrop);
+              
+              if (picked && picked.gIndex === gIndex && picked.segKey === key) {
+                segEl.classList.add("selected");
+              }
+              box.appendChild(segEl);
+            }
+          }
+          boardEl.appendChild(box);
+        });
+      }
+
+      let draggedMatch = null;
+
+      function onDragStart(e) {
+  if (timeUp || moves >= MAX_MOVES) {
+    e.preventDefault();
+    return;
+  }
+
+  const gIndex = Number(e.currentTarget.dataset.gIndex);
+  const segKey = e.currentTarget.dataset.segKey;
+  const g = state[gIndex];
+
+  // Block dragging from equals sign
+  if (
+    g.kind === "op" &&
+    g.segs.has("op-h-top") &&
+    g.segs.has("op-h-mid") &&
+    g.segs.has("op-h-bot") &&
+    ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
+  ) {
+    e.preventDefault();
+    return;
+  }
+
+  draggedMatch = { gIndex, segKey };
+  e.currentTarget.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/html", e.currentTarget.innerHTML);
+
+  // Highlight only empty slots on digit segments (not operators)
+  document.querySelectorAll(".seg.off").forEach(el => {
+    const elGIndex = Number(el.dataset.gIndex);
+    const elG = state[elGIndex];
+    if (elG.kind !== "op") {
+      el.classList.add("can-drop");
+    }
+  });
+}
+
+
+      function onDragEnd(e) {
+        e.currentTarget.classList.remove("dragging");
+        document.querySelectorAll(".seg.drag-over").forEach(el => {
+          el.classList.remove("drag-over");
+        });
+        document.querySelectorAll(".seg.can-drop").forEach(el => {
+          el.classList.remove("can-drop");
+        });
+      }
+
+      function onDragOver(e) {
+        if (!draggedMatch) return;
+        
+        const gIndex = Number(e.currentTarget.dataset.gIndex);
+        const segKey = e.currentTarget.dataset.segKey;
+        const g = state[gIndex];
+        const isLit = g.segs.has(segKey);
+        
+        // Don't allow drops on operator segments (equals sign)
+        if (!isLit && g.kind !== "op") {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          e.currentTarget.classList.add("drag-over");
+        }
+      }
+
+      function onDragLeave(e) {
+        e.currentTarget.classList.remove("drag-over");
+      }
+
+      function onDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove("drag-over");
+        
+        if (!draggedMatch) return;
+        
+        const targetGIndex = Number(e.currentTarget.dataset.gIndex);
+        const targetSegKey = e.currentTarget.dataset.segKey;
+        const targetG = state[targetGIndex];
+        const isLit = targetG.segs.has(targetSegKey);
+        
+        // Don't allow drops on lit segments or operator segments
+        if (isLit || targetG.kind === "op") {
+          draggedMatch = null;
+          return;
+        }
+        
+        const src = state[draggedMatch.gIndex];
+        src.segs.delete(draggedMatch.segKey);
+        targetG.segs.add(targetSegKey);
+        
+        moves += 1;
+        draggedMatch = null;
+        picked = null;
+        
+        render();
+        checkResultAuto();
+      }
+
+      function showResult(win, message) {
+        clearInterval(timer);
+        puzzlePanel.classList.add("hidden");
+        resultPanelWrapper.classList.remove("hidden");
+        if (win) {
+          resultTitle.textContent = "Wohooo!🎉 ";
+          resultMessage.textContent = message || "Congratulations! You solved the puzzle.";
+          playAgainBtn.classList.add("hidden");
+          collectRewardBtn.classList.remove("hidden");
+        } else {
+          resultTitle.textContent = "Try Again!❌ ";
+          resultMessage.textContent = message || "Sorry, that's not correct.";
+          playAgainBtn.classList.remove("hidden");
+          collectRewardBtn.classList.add("hidden");
+        }
+      }
+
+      function onClickSeg(e) {
+        if (timeUp) {
+          updateStatus("Time's up! Click Play Again to restart.", "danger");
+          return;
+        }
+        if (moves >= MAX_MOVES) {
+          updateStatus("You can only move one matchstick! Click Play Again to restart.", "danger");
+          return;
+        }
+
+        const gIndex = Number(e.currentTarget.dataset.gIndex);
+        const segKey = e.currentTarget.dataset.segKey;
+        const g = state[gIndex];
+        const isLit = g.segs.has(segKey);
+
+        if (!picked) {
+          if (!isLit) {
+            updateStatus("Pick a lit match first.");
+            return;
+          }
+          picked = { gIndex, segKey };
+          render();
+          updateStatus("Picked one match. Click any unlit slot to place it, or Cancel.");
+          return;
+        }
+
+        if (picked && picked.gIndex === gIndex && picked.segKey === segKey) {
+          picked = null;
+          render();
+          updateStatus("Pick canceled.");
+          return;
+        }
+
+        if (isLit) {
+          picked = { gIndex, segKey };
+          render();
+          updateStatus("Switched to new matchstick. Click any unlit slot to place it.");
+          return;
+        }
+
+        // Don't allow placement on operator segments (equals sign)
+        if (!picked && isLit) {
+    if (
+      g.kind === "op" &&
+      g.segs.has("op-h-top") &&
+      g.segs.has("op-h-mid") &&
+      g.segs.has("op-h-bot") &&
+      ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
+    ) {
+      updateStatus("You can't move matches from the equals sign!");
+      return;
+    }
+  }
+
+        const src = state[picked.gIndex];
+        src.segs.delete(picked.segKey);
+        g.segs.add(segKey);
+        picked = null;
+        moves += 1;
+        render();
+        checkResultAuto();
+      }
+
+      function checkResultAuto() {
+        const puzzle = PUZZLES[currentPuzzleIndex];
+        const now = normalizeConfig(state);
+        const goal = normalizeConfig(cloneStateFromConfig(puzzle.target));
+        const solved = JSON.stringify(now) === JSON.stringify(goal);
+
+        disableBoard();
+
+        if (solved) {
+          clearInterval(timer);
+          updateStatus("You solved it!");
+          setTimeout(() => {
+            showResult(true, "You've got some brains!");
+          }, 2000);
+        } else {
+          clearInterval(timer);
+          setTimeout(() => {
+            showResult(false, "You failed! Wanna try again?");
+          }, 2000);
+        }
+      }
+
+      function normalizeConfig(arr) {
+        return arr.map((g) =>
+          g.kind === "digit"
+            ? { kind: "digit", segs: [...g.segs].sort() }
+            : { kind: "op", segs: [...g.segs].sort() }
+        );
+      }
+
+      function updateStatus(msg) {
+        statusEl.textContent = "";
+      }
+
+      document.getElementById("cancelBtn").addEventListener("click", () => {
+        picked = null;
+        render();
+        updateStatus("Pick canceled.");
+      });
+
+      playAgainBtn.addEventListener("click", () => {
+        clearInterval(timer);
+        resultPanelWrapper.classList.add("hidden");
+        puzzlePanel.classList.add("hidden");
+        startPanel.classList.remove("hidden");
+        statusEl.className = "";
+        statusEl.textContent = "";
+        timerDisplay.textContent = "";
+      });
+
+      function pickRandomPuzzle() {
+        let idx = Math.floor(Math.random() * PUZZLES.length);
+        currentPuzzleIndex = idx;
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        startPanel.classList.remove("hidden");
+        puzzlePanel.classList.add("hidden");
+        resultPanelWrapper.classList.add("hidden");
+        statusEl.className = "";
+        statusEl.textContent = "";
+        timerDisplay.textContent = "";
+        document.getElementById("startBtn").addEventListener("click", function() {
+          pickRandomPuzzle();
+          startPanel.classList.add("hidden");
+          resultPanelWrapper.classList.add("hidden");
+          puzzlePanel.classList.remove("hidden");
+          startTimer();
+          init();
+        });
+      });
+
+      function backToMenu() {
+        window.location.href = 'homepage.html';
+      }
+      
+      backToMenuBtn.addEventListener("click", backToMenu);
+      collectRewardBtn.addEventListener("click", backToMenu);
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
