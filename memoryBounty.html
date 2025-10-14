@@ -105,7 +105,6 @@
         border-radius: 0;
       }
 
-      /* Center panels vertically */
       .center-panel {
         min-height: 95vh;
         display: flex;
@@ -352,6 +351,50 @@
         box-shadow: 0 6px 18px rgba(125, 43, 193, 0.6);
       }
 
+      /* Image Selector Styles */
+      .image-selector {
+        margin: 1.5rem 0;
+        text-align: center;
+      }
+
+      .image-selector-label {
+        color: #9be7ff;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: block;
+      }
+
+      .image-options {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .image-option {
+        background: rgba(155, 231, 255, 0.1);
+        border: 2px solid rgba(155, 231, 255, 0.3);
+        border-radius: 12px;
+        padding: 0.8rem 1.5rem;
+        color: #e6edf3;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .image-option:hover {
+        background: rgba(155, 231, 255, 0.2);
+        border-color: #9be7ff;
+        transform: translateY(-2px);
+      }
+
+      .image-option.active {
+        background: rgba(155, 231, 255, 0.3);
+        border-color: #9be7ff;
+        box-shadow: 0 0 15px var(--glow);
+      }
+
       @media (max-width: 992px) {
         .game-card {
           max-width: 100%;
@@ -416,6 +459,16 @@
 
         <div id="startScreen" class="start-card">
           <h2 class="start-title">Ready to test your memory?</h2>
+          
+          <!-- Image Selector for "For All" category -->
+          <div id="imageSelector" class="image-selector hidden">
+            <!-- <label class="image-selector-label">Choose your challenge:</label> -->
+            <div class="image-options">
+              <div class="image-option active" onclick="selectImage(1)">Set 1</div>
+              <div class="image-option" onclick="selectImage(2)">Set 2</div>
+            </div>
+          </div>
+
           <div class="rules-section">
             <ul class="rules-list">
               <li>You will get 15 seconds to memorize some objects.</li>
@@ -430,11 +483,10 @@
           <div class="phase-label">Memorization Phase</div>
           <div class="timer" id="memoryTimer">15</div>
           <div class="image-container">
-            <img id="memoryImage" class="memory-image" src="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?w=800" alt="Memory objects" />
+            <img id="memoryImage" class="memory-image" src="/assets/images/Set 1.png" alt="Memory objects" />
           </div>
         </div>
 
-        <!-- Recall Phase centered -->
         <div id="recallPanelWrapper" class="center-panel hidden">
           <div id="recallPhase" class="panel">
             <div class="phase-label">Recall Phase</div>
@@ -443,7 +495,6 @@
           </div>
         </div>
 
-        <!-- Result Panel centered -->
         <div id="timeUpPanelWrapper" class="center-panel hidden">
           <div id="timeUpScreen" class="panel">
             <div class="times-up">Time's Up!</div>
@@ -462,6 +513,13 @@
       let memoryTime = 15;
       let recallTime = 20;
       let currentGameType = 'all';
+      let selectedImageIndex = 1; // Default to Image 1
+
+      // ⭐ CONFIGURE YOUR IMAGES HERE ⭐
+      const forAllImages = {
+        1: "/assets/images/Set 1.png",  
+        2: "/assets/images/Set 2.png"   
+      };
 
       const cardSelection = document.getElementById("cardSelection");
       const gameSection = document.getElementById("gameSection");
@@ -469,6 +527,7 @@
       const memoryPhase = document.getElementById("memoryPhase");
       const recallPanelWrapper = document.getElementById("recallPanelWrapper");
       const timeUpPanelWrapper = document.getElementById("timeUpPanelWrapper");
+      const imageSelector = document.getElementById("imageSelector");
 
       const memoryImage = document.getElementById("memoryImage");
       const memoryTimer = document.getElementById("memoryTimer");
@@ -480,18 +539,34 @@
       const backToMenuBtn = document.getElementById("backToMenuBtn");
       const collectRewardBtn = document.getElementById("collectRewardBtn");
 
+      function selectImage(imageNum) {
+        selectedImageIndex = imageNum;
+        
+        // Update active state
+        document.querySelectorAll('.image-option').forEach((option, index) => {
+          if (index + 1 === imageNum) {
+            option.classList.add('active');
+          } else {
+            option.classList.remove('active');
+          }
+        });
+      }
+
       function selectGame(type) {
         currentGameType = type;
 
+        // Show/hide image selector based on game type
         if (type === 'all') {
-          memoryImage.src = "/assets/images/memoryimg.jpeg";
+          imageSelector.classList.remove("hidden");
+          // Set initial image
+          memoryImage.src = forAllImages[selectedImageIndex];
         } else if (type === 'vserv') {
-          memoryImage.src = "/assets/images/memoryimg.jpeg";
-        }
+        imageSelector.classList.add("hidden");
+        memoryImage.src = "/assets/images/For OGs.png";
+      }
 
-        // Update rules based on game type
+
         updateRules(type);
-
         cardSelection.classList.add("hidden");
         gameSection.classList.remove("hidden");
       }
@@ -524,6 +599,11 @@
       function startGame() {
         memoryTime = 15;
         recallTime = 20;
+
+        // Update image based on selection (for "For All" category)
+        if (currentGameType === 'all') {
+          memoryImage.src = forAllImages[selectedImageIndex];
+        }
 
         showScreen(memoryPhase);
         startMemoryPhase();
