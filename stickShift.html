@@ -91,6 +91,12 @@
         opacity: 0.5;
         cursor: grabbing !important;
       }
+      .seg.touch-dragging {
+        position: fixed !important;
+        z-index: 9999;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+      }
       .seg.drag-over {
         outline: 3px dashed var(--selected);
         background: rgba(155, 231, 255, 0.35) !important;
@@ -288,9 +294,6 @@
       </section>
       <section id="puzzlePanel" class="panel mt-4 p-3 hidden">
         <div id="timerDisplay" class="text-center"></div>
-        <div class="instruction-banner">
-          💡 Click to select or drag and drop a matchstick to solve the puzzle
-        </div>
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
           <div>
             <button id="cancelBtn" class="btn btn-outline-secondary btn-sm me-2">Cancel Pick</button>
@@ -510,6 +513,9 @@
                 segEl.draggable = true;
                 segEl.addEventListener("dragstart", onDragStart);
                 segEl.addEventListener("dragend", onDragEnd);
+                segEl.addEventListener("touchstart", onTouchStart, { passive: false });
+                segEl.addEventListener("touchmove", onTouchMove, { passive: false });
+                segEl.addEventListener("touchend", onTouchEnd);
               }
               
               segEl.addEventListener("click", onClickSeg);
@@ -536,6 +542,9 @@
                 segEl.draggable = true;
                 segEl.addEventListener("dragstart", onDragStart);
                 segEl.addEventListener("dragend", onDragEnd);
+                segEl.addEventListener("touchstart", onTouchStart, { passive: false });
+                segEl.addEventListener("touchmove", onTouchMove, { passive: false });
+                segEl.addEventListener("touchend", onTouchEnd);
               }
               
               segEl.addEventListener("click", onClickSeg);
@@ -554,44 +563,155 @@
       }
 
       let draggedMatch = null;
+      let touchDragElement = null;
+      let ghostElement = null;
 
       function onDragStart(e) {
-  if (timeUp || moves >= MAX_MOVES) {
-    e.preventDefault();
-    return;
-  }
+        if (timeUp || moves >= MAX_MOVES) {
+          e.preventDefault();
+          return;
+        }
 
-  const gIndex = Number(e.currentTarget.dataset.gIndex);
-  const segKey = e.currentTarget.dataset.segKey;
-  const g = state[gIndex];
+        const gIndex = Number(e.currentTarget.dataset.gIndex);
+        const segKey = e.currentTarget.dataset.segKey;
+        const g = state[gIndex];
 
-  // Block dragging from equals sign
-  if (
-    g.kind === "op" &&
-    g.segs.has("op-h-top") &&
-    g.segs.has("op-h-mid") &&
-    g.segs.has("op-h-bot") &&
-    ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
-  ) {
-    e.preventDefault();
-    return;
-  }
+        if (
+          g.kind === "op" &&
+          g.segs.has("op-h-top") &&
+          g.segs.has("op-h-bot") &&
+          ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
+        ) {
+          e.preventDefault();
+          return;
+        }
 
-  draggedMatch = { gIndex, segKey };
-  e.currentTarget.classList.add("dragging");
-  e.dataTransfer.effectAllowed = "move";
-  e.dataTransfer.setData("text/html", e.currentTarget.innerHTML);
+        draggedMatch = { gIndex, segKey };
+        e.currentTarget.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/html", e.currentTarget.innerHTML);
 
-  // Highlight only empty slots on digit segments (not operators)
-  document.querySelectorAll(".seg.off").forEach(el => {
-    const elGIndex = Number(el.dataset.gIndex);
-    const elG = state[elGIndex];
-    if (elG.kind !== "op") {
-      el.classList.add("can-drop");
-    }
-  });
-}
+        document.querySelectorAll(".seg.off").forEach(el => {
+          const elGIndex = Number(el.dataset.gIndex);
+          const elG = state[elGIndex];
+          if (elG.kind !== "op") {
+            el.classList.add("can-drop");
+          }
+        });
+      }
 
+      function onTouchStart(e) {
+        if (timeUp || moves >= MAX_MOVES) {
+          return;
+        }
+
+        const gIndex = Number(e.currentTarget.dataset.gIndex);
+        const segKey = e.currentTarget.dataset.segKey;
+        const g = state[gIndex];
+
+        if (
+          g.kind === "op" &&
+          g.segs.has("op-h-top") &&
+          g.segs.has("op-h-bot") &&
+          ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
+        ) {
+          return;
+        }
+
+        draggedMatch = { gIndex, segKey };
+        touchDragElement = e.currentTarget;
+        
+        ghostElement = e.currentTarget.cloneNode(true);
+        ghostElement.classList.add("touch-dragging");
+        ghostElement.style.width = e.currentTarget.offsetWidth + "px";
+        ghostElement.style.height = e.currentTarget.offsetHeight + "px";
+        document.body.appendChild(ghostElement);
+        
+        const touch = e.touches[0];
+        ghostElement.style.left = touch.clientX + "px";
+        ghostElement.style.top = touch.clientY + "px";
+        
+        e.currentTarget.style.opacity = "0.3";
+
+        document.querySelectorAll(".seg.off").forEach(el => {
+          const elGIndex = Number(el.dataset.gIndex);
+          const elG = state[elGIndex];
+          if (elG.kind !== "op") {
+            el.classList.add("can-drop");
+          }
+        });
+      }
+
+      function onTouchMove(e) {
+        if (!draggedMatch || !ghostElement) return;
+        e.preventDefault();
+
+        const touch = e.touches[0];
+        ghostElement.style.left = touch.clientX + "px";
+        ghostElement.style.top = touch.clientY + "px";
+        
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        
+        document.querySelectorAll(".seg.drag-over").forEach(el => {
+          el.classList.remove("drag-over");
+        });
+
+        if (elementBelow && elementBelow.classList.contains("seg")) {
+          const gIndex = Number(elementBelow.dataset.gIndex);
+          const segKey = elementBelow.dataset.segKey;
+          const g = state[gIndex];
+          const isLit = g.segs.has(segKey);
+          
+          if (!isLit && g.kind !== "op") {
+            elementBelow.classList.add("drag-over");
+          }
+        }
+      }
+
+      function onTouchEnd(e) {
+        if (!draggedMatch) return;
+
+        const touch = e.changedTouches[0];
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+
+        if (touchDragElement) {
+          touchDragElement.style.opacity = "";
+        }
+        
+        if (ghostElement) {
+          ghostElement.remove();
+          ghostElement = null;
+        }
+        
+        document.querySelectorAll(".seg.drag-over").forEach(el => {
+          el.classList.remove("drag-over");
+        });
+        document.querySelectorAll(".seg.can-drop").forEach(el => {
+          el.classList.remove("can-drop");
+        });
+
+        if (elementBelow && elementBelow.classList.contains("seg")) {
+          const targetGIndex = Number(elementBelow.dataset.gIndex);
+          const targetSegKey = elementBelow.dataset.segKey;
+          const targetG = state[targetGIndex];
+          const isLit = targetG.segs.has(targetSegKey);
+          
+          if (!isLit && targetG.kind !== "op") {
+            const src = state[draggedMatch.gIndex];
+            src.segs.delete(draggedMatch.segKey);
+            targetG.segs.add(targetSegKey);
+            
+            moves += 1;
+            picked = null;
+            
+            render();
+            checkResultAuto();
+          }
+        }
+
+        draggedMatch = null;
+        touchDragElement = null;
+      }
 
       function onDragEnd(e) {
         e.currentTarget.classList.remove("dragging");
@@ -611,7 +731,6 @@
         const g = state[gIndex];
         const isLit = g.segs.has(segKey);
         
-        // Don't allow drops on operator segments (equals sign)
         if (!isLit && g.kind !== "op") {
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
@@ -634,7 +753,6 @@
         const targetG = state[targetGIndex];
         const isLit = targetG.segs.has(targetSegKey);
         
-        // Don't allow drops on lit segments or operator segments
         if (isLit || targetG.kind === "op") {
           draggedMatch = null;
           return;
@@ -671,11 +789,11 @@
 
       function onClickSeg(e) {
         if (timeUp) {
-          updateStatus("Time's up! Click Play Again to restart.", "danger");
+          updateStatus("Time's up! Click Play Again to restart.");
           return;
         }
         if (moves >= MAX_MOVES) {
-          updateStatus("You can only move one matchstick! Click Play Again to restart.", "danger");
+          updateStatus("You can only move one matchstick! Click Play Again to restart.");
           return;
         }
 
@@ -689,6 +807,17 @@
             updateStatus("Pick a lit match first.");
             return;
           }
+          
+          if (
+            g.kind === "op" &&
+            g.segs.has("op-h-top") &&
+            g.segs.has("op-h-bot") &&
+            ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
+          ) {
+            updateStatus("You can't move matches from the equals sign!");
+            return;
+          }
+          
           picked = { gIndex, segKey };
           render();
           updateStatus("Picked one match. Click any unlit slot to place it, or Cancel.");
@@ -703,25 +832,26 @@
         }
 
         if (isLit) {
+          if (
+            g.kind === "op" &&
+            g.segs.has("op-h-top") &&
+            g.segs.has("op-h-bot") &&
+            ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
+          ) {
+            updateStatus("You can't move matches from the equals sign!");
+            return;
+          }
+          
           picked = { gIndex, segKey };
           render();
           updateStatus("Switched to new matchstick. Click any unlit slot to place it.");
           return;
         }
 
-        // Don't allow placement on operator segments (equals sign)
-        if (!picked && isLit) {
-    if (
-      g.kind === "op" &&
-      g.segs.has("op-h-top") &&
-      g.segs.has("op-h-mid") &&
-      g.segs.has("op-h-bot") &&
-      ["op-h-top", "op-h-mid", "op-h-bot"].includes(segKey)
-    ) {
-      updateStatus("You can't move matches from the equals sign!");
-      return;
-    }
-  }
+        if (g.kind === "op") {
+          updateStatus("You can't place matches on the equals sign!");
+          return;
+        }
 
         const src = state[picked.gIndex];
         src.segs.delete(picked.segKey);
